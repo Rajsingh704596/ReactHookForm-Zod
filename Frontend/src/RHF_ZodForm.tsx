@@ -5,38 +5,67 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { userFormSchema, type UserForm } from "./types/userFormSchema";
 
 const RHF_ZodForm = () => {
+    // Define default values outside the hook for consistency
+  const defaultValues:UserForm = {
+    name: "",
+    age: undefined,  
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    gender: "male", // Must be one of the enum values
+  };
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
+    reset,
   } = useForm<UserForm>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: {
-      name: "",
-      age: undefined,
-      email: "",
-      password: "",
-      confirmPassword: "",
-      phone: "",
-      gender: "male",
-    },
+    defaultValues,
   });
 
-  const onSubmit = (data: UserForm) => {
-    console.log(data);
+  const onSubmit = async(formdata: UserForm) => { 
+      console.log(formdata);
     // Handle form submission here
+       try {
+      const response = await fetch(`http://localhost:3000/api/user/form`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json", // it define post data is json format
+        },
+        body: JSON.stringify(formdata), // state data pass in JSON.stringify format in body
+      });
+     
+      const res_data = await response.json();
+      console.log("after json object change response from server", res_data);
+      if (response.ok) {
+        reset(defaultValues); // Reset to default values after successful submission
+
+        // Optional: Show success message
+        alert("Form submitted successfully!");
+     
+      } else {
+          console.error("Error:", res_data.error);
+        alert(`Error: ${res_data.error || "Submission failed"}`);
+      }
+    } catch (error) {
+      console.log("registration error", error);
+     alert("An unexpected error occurred");
+    }
   };
 
   return (
     <div>
       <h1>User Form</h1>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} >
         <div>
           <label htmlFor="name">Name</label>
           <input
             type="text"
             id="name"
             {...register("name")}
+             autoComplete="name"
           />
           {errors.name && <span>{errors.name.message}</span>}
         </div>
@@ -47,6 +76,7 @@ const RHF_ZodForm = () => {
             type="number"
             id="age"
             {...register("age", { valueAsNumber: true })}
+             autoComplete="off" // For fields where autocomplete isn't helpful
           />
           {errors.age && <span>{errors.age.message}</span>}
         </div>
@@ -57,6 +87,7 @@ const RHF_ZodForm = () => {
             type="email"
             id="email"
             {...register("email")}
+             autoComplete="email"
           />
           {errors.email && <span>{errors.email.message}</span>}
         </div>
@@ -67,6 +98,7 @@ const RHF_ZodForm = () => {
             type="password"
             id="password"
             {...register("password")}
+              autoComplete="new-password" // Important for security
           />
           {errors.password && <span>{errors.password.message}</span>}
         </div>
@@ -77,6 +109,7 @@ const RHF_ZodForm = () => {
             type="password"
             id="confirmPassword"
             {...register("confirmPassword")}
+             autoComplete="new-password" // Important for security  // For password confirmation
           />
           {errors.confirmPassword && (
             <span>{errors.confirmPassword.message}</span>
@@ -86,9 +119,10 @@ const RHF_ZodForm = () => {
         <div>
           <label htmlFor="phone">Phone</label>
           <input
-            type="text"
+            type="tel"
             id="phone"
             {...register("phone")}
+             autoComplete="tel"
           />
           {errors.phone && <span>{errors.phone.message}</span>}
         </div>
@@ -103,7 +137,13 @@ const RHF_ZodForm = () => {
           {errors.gender && <span>{errors.gender.message}</span>}
         </div>
 
-        <button type="submit">Submit</button>
+         {/* Submit Button */}
+           <button 
+          type="submit" 
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Submit"}
+        </button>
       </form>
     </div>
   );
